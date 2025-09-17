@@ -1,0 +1,126 @@
+{
+    "database": {
+        "host": "localhost",
+        "user": "bitrix",
+        "password": "password",
+        "name": "bitrix_db"
+    },
+    "backup_dir": "/tmp/courier_delivery_backup",
+    "module_settings": {
+        "abs_api_url": "https://api.bank.local/gateway",
+        "abs_api_key": "your_abs_api_key_here",
+        "yandex_maps_api_key": "your_yandex_maps_api_key_here",
+        "sms_service_url": "https://sms.provider.com/api",
+        "sms_service_login": "sms_login",
+        "sms_service_password": "sms_password",
+        "location_update_interval": "60",
+        "notification_email": "admin@bank.com",
+        "admin_phones": "+7(495)123-45-67,+7(495)234-56-78",
+        "max_file_size": "10485760",
+        "allowed_file_types": "jpg,jpeg,png,pdf,doc,docx"
+    },
+    "initial_data": {
+        "branches": [
+            {
+                "name": "Центральный филиал",
+                "address": "г. Москва, ул. Центральная, д. 1",
+                "phone": "+7 (495) 123-45-67"
+            },
+            {
+                "name": "Северный филиал", 
+                "address": "г. Москва, ул. Северная, д. 10",
+                "phone": "+7 (495) 234-56-78"
+            },
+            {
+                "name": "Южный филиал",
+                "address": "г. Москва, ул. Южная, д. 25", 
+                "phone": "+7 (495) 345-67-89"
+            }
+        ],
+        "departments": [
+            {
+                "branch_id": 1,
+                "name": "Отдел корпоративных клиентов",
+                "code": "CORP_01"
+            },
+            {
+                "branch_id": 1,
+                "name": "Отдел частных клиентов",
+                "code": "PRIV_01"
+            },
+            {
+                "branch_id": 2,
+                "name": "Отдел корпоративных клиентов", 
+                "code": "CORP_02"
+            },
+            {
+                "branch_id": 2,
+                "name": "Отдел частных клиентов",
+                "code": "PRIV_02"
+            },
+            {
+                "branch_id": 3,
+                "name": "Отдел корпоративных клиентов",
+                "code": "CORP_03"
+            },
+            {
+                "branch_id": 3,
+                "name": "Отдел частных клиентов",
+                "code": "PRIV_03"
+            }
+        ],
+        "users": [
+            {
+                "login": "courier_admin",
+                "password": "admin123!",
+                "name": "Администратор",
+                "last_name": "Системы",
+                "email": "admin@bank.com",
+                "groups": [1, "COURIER_ADMIN"]
+            },
+            {
+                "login": "senior_courier_1",
+                "password": "senior123!",
+                "name": "Старший",
+                "last_name": "Курьер",
+                "email": "senior@bank.com", 
+                "groups": [2, "COURIER_SENIOR"]
+            },
+            {
+                "login": "operator_1",
+                "password": "operator123!",
+                "name": "Оператор",
+                "last_name": "Первый",
+                "email": "operator1@bank.com",
+                "groups": [2, "COURIER_OPERATOR"]
+            },
+            {
+                "login": "courier_1",
+                "password": "courier123!",
+                "name": "Курьер",
+                "last_name": "Первый", 
+                "email": "courier1@bank.com",
+                "groups": [2, "COURIER_DELIVERY"]
+            }
+        ]
+    },
+    "security": {
+        "enable_csrf_protection": true,
+        "enable_rate_limiting": true,
+        "max_requests_per_minute": 100,
+        "enable_ip_blocking": true,
+        "log_security_events": true
+    },
+    "performance": {
+        "enable_caching": true,
+        "cache_ttl": 300,
+        "enable_compression": true,
+        "optimize_images": true
+    },
+    "monitoring": {
+        "enable_logging": true,
+        "log_level": "INFO",
+        "enable_metrics": true,
+        "metrics_retention_days": 30
+    }
+}
