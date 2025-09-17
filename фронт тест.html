@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Курьерская служба - Система управления заявками</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c6bed;
+            --secondary: #6c757d;
+            --success: #198754;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #0dcaf0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --sidebar-width: 250px;
+            --header-height: 70px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fb;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Стили боковой панели */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 20px 0;
+            transition: all 0.3s;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+        
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #eaeef2;
+        }
+        
+        .sidebar-brand {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-brand i {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #566a7f;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            background-color: #f5f7fb;
+            color: var(--primary);
+            border-left-color: var(--primary);
+        }
+        
+        .sidebar-menu a i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        .menu-text {
+            transition: opacity 0.3s;
+        }
+        
+        /* Основной контент */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+        }
+        
+        /* Навигационная панель */
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Карточки */
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            border: none;
+            transition: transform 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #eaeef2;
+            font-weight: 600;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0 !important;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Таблицы */
+        .table-responsive {
+            border-radius: 0 0 10px 10px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            font-weight: 600;
+            color: #566a7f;
+            font-size: 0.9rem;
+            padding: 12px 15px;
+            background-color: #f8f9fa;
+            border-top: none;
+        }
+        
+        .table td {
+            vertical-align: middle;
+            font-size: 0.9rem;
+            padding: 12px 15px;
+            border-color: #eaeef2;
+        }
+        
+        .table tr:hover {
+            background-color: rgba(44, 107, 237, 0.03);
+        }
+        
+        /* Бейджи статусов */
+        .status-badge {
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        /* Кнопки действий */
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 13px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .btn-action:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Панель фильтров */
+        .filters-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-row {
+            margin-bottom: 15px;
+        }
+        
+        .filter-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 10px;
+            border-top: 1px solid #eaeef2;
+            margin-top: 10px;
+        }
+        
+        /* Индикаторы статуса курьера */
+        .courier-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .online {
+            background-color: var(--success);
+        }
+        
+        .offline {
+            background-color: var(--secondary);
+        }
+        
+        .on-delivery {
+            background-color: var(--warning);
+        }
+        
+        /* Дашборд */
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .stat-card h3 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .stat-card p {
+            margin: 5px 0 0;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        /* Контейнер карты */
+        .map-container {
+            height: 400px;
+            background: #eaeef2;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            overflow: hidden;
+        }
+        
+        /* Поле для подписи */
+        .signature-pad {
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+            height: 200px;
+            margin-bottom: 15px;
+            background: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .signature-pad:hover {
+            background: #f0f0f0;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 70px;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+                width: calc(100% - 70px);
+            }
+            
+            .menu-text {
+                display: none;
+            }
+            
+            .sidebar-header {
+                text-align: center;
+                padding: 0 10px 20px;
+            }
+            
+            .sidebar-brand {
+                justify-content: center;
+            }
+            
+            .sidebar-brand i {
+                margin-right: 0;
+            }
+            
+            .sidebar-brand span {
+                display: none;
+            }
+            
+            .sidebar-menu a {
+                justify-content: center;
+                padding: 15px 10px;
+            }
+            
+            .sidebar-menu a i {
+                margin-right: 0;
+                font-size: 1.2rem;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .dashboard-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 10px 0;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .menu-text {
+                display: inline;
+            }
+            
+            .sidebar-menu {
+                display: flex;
+                overflow-x: auto;
+                margin: 10px 0 0;
+            }
+            
+            .sidebar-menu li {
+                flex: 0 0 auto;
+                margin-bottom: 0;
+            }
+            
+            .sidebar-menu a {
+                border-left: none;
+                border-bottom: 3px solid transparent;
+                padding: 10px 15px;
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .sidebar-menu a i {
+                margin-right: 0;
+                margin-bottom: 5px;
+            }
+            
+            .sidebar-menu a:hover,
+            .sidebar-menu a.active {
+                border-left-color: transparent;
+                border-bottom-color: var(--primary);
+            }
+            
+            .dashboard-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .navbar {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px;
+            }
+            
+            .navbar h5 {
+                margin-bottom: 10px;
+            }
+            
+            .user-menu {
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .card-header .btn {
+                margin-top: 10px;
+                align-self: flex-end;
+            }
+            
+            .filter-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .filter-actions .btn {
+                width: 100%;
+            }
+        }
+        
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        /* Кастомные стили для модальных окон */
+        .modal-content {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid #eaeef2;
+            padding: 15px 20px;
+        }
+        
+        .modal-footer {
+            border-top: 1px solid #eaeef2;
+            padding: 15px 20px;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        /* Стили для прелоадера */
+        .preloader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Стили для уведомлений */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            z-index: 1050;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .notification.success {
+            background-color: var(--success);
+        }
+        
+        .notification.error {
+            background-color: var(--danger);
+        }
+        
+        .notification.warning {
+            background-color: var(--warning);
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Боковая панель -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <i class="fas fa-box-open"></i>
+                    <span>Курьерская служба</span>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="#" class="active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span class="menu-text">Дашборд</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-list"></i>
+                        <span class="menu-text">Заявки</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-users"></i>
+                        <span class="menu-text">Курьеры</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span class="menu-text">Карта</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-file-contract"></i>
+                        <span class="menu-text">Договоры</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-chart-bar"></i>
+                        <span class="menu-text">Отчеты</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-cog"></i>
+                        <span class="menu-text">Настройки</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="main-content">
+            <!-- Навигационная панель -->
+            <div class="navbar">
+                <h5>Панель администратора</h5>
+                
+                <div class="user-menu">
+                    <div class="dropdown me-3">
+                        <button class="btn btn-outline-primary dropdown-toggle" type="button" id="roleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user me-1"></i>Администратор
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="roleDropdown">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-tie me-2"></i>Оператор</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-shipping-fast me-2"></i>Курьер</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-shield me-2"></i>Старший курьер</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-crown me-2"></i>Администратор</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-primary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>Иван Петров
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Настройки</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-bell me-2"></i>Уведомления</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Выйти</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="dashboard-stats">
+                <div class="stat-card fade-in">
+                    <h3>127</h3>
+                    <p>Всего заявок</p>
+                </div>
+                <div class="stat-card fade-in">
+                    <h3>89</h3>
+                    <p>Доставлено</p>
+                </div>
+                <div class="stat-card fade-in">
+                    <h3>25</h3>
+                    <p>В процессе</p>
+                </div>
+                <div class="stat-card fade-in">
+                    <h3>13</h3>
+                    <p>Отказано</p>
+                </div>
+            </div>
+
+            <!-- Карта курьеров -->
+            <div class="card fade-in">
+                <div class="card-header">
+                    <span>Карта курьеров в реальном времени</span>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary me-2">
+                            <i class="fas fa-sync-alt me-1"></i>Обновить
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-expand me-1"></i>На весь экран
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="map-container">
+                        <div class="text-center">
+                            <i class="fas fa-map-marked-alt fa-3x mb-3"></i>
+                            <p>Интеграция с Яндекс.Картами</p>
+                            <p>Отслеживание местоположения курьеров</p>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Курьер</th>
+                                    <th>Статус</th>
+                                    <th>Филиал</th>
+                                    <th>Текущее местоположение</th>
+                                    <th>Последняя активность</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="courier-status online me-2"></span>
+                                            Иванов А.
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-success status-badge">Активен</span></td>
+                                    <td>Центральный</td>
+                                    <td>ул. Пушкина, д. 15</td>
+                                    <td>2 минуты назад</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-location-arrow"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="courier-status on-delivery me-2"></span>
+                                            Смирнов В.
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-warning status-badge">На доставке</span></td>
+                                    <td>Северный</td>
+                                    <td>пр. Ленина, д. 42</td>
+                                    <td>5 минут назад</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-location-arrow"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="courier-status offline me-2"></span>
+                                            Петров С.
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-secondary status-badge">Неактивен</span></td>
+                                    <td>Южный</td>
+                                    <td>Не доступно</td>
+                                    <td>45 минут назад</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                            <i class="fas fa-location-arrow"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Список заявок -->
+            <div class="card fade-in">
+                <div class="card-header">
+                    <span>Список заявок</span>
+                    <div>
+                        <button class="btn btn-success me-2">
+                            <i class="fas fa-file-excel me-1"></i>Выгрузить
+                        </button>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRequestModal">
+                            <i class="fas fa-plus me-1"></i>Добавить заявку
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Панель фильтров -->
+                    <div class="filters-panel">
+                        <div class="row filter-row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Дата регистрации от</label>
+                                <input type="date" class="form-control" value="2025-09-01">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Дата регистрации до</label>
+                                <input type="date" class="form-control" value="2025-09-17">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Статус</label>
+                                <select class="form-select">
+                                    <option selected>Все</option>
+                                    <option>Новая</option>
+                                    <option>Ожидает доставки</option>
+                                    <option>Доставлено</option>
+                                    <option>Отказано</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Статус звонка</label>
+                                <select class="form-select">
+                                    <option selected>Все</option>
+                                    <option>Успешный</option>
+                                    <option>Не удался</option>
+                                    <option>Не звонили</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row filter-row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Тип карты</label>
+                                <select class="form-select">
+                                    <option selected>Все</option>
+                                    <option>Visa</option>
+                                    <option>MasterCard</option>
+                                    <option>Мир</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Филиал</label>
+                                <select class="form-select">
+                                    <option selected>Все</option>
+                                    <option>Центральный</option>
+                                    <option>Северный</option>
+                                    <option>Южный</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Подразделение</label>
+                                <select class="form-select">
+                                    <option selected>Все</option>
+                                    <option>Подразделение 1</option>
+                                    <option>Подразdeление 2</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Оператор КЦ</label>
+                                <select class="form-select">
+                                    <option selected>Все</option>
+                                    <option>Оператор 1</option>
+                                    <option>Оператор 2</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row filter-row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Курьер</label>
+                                <select class="form-select">
+                                    <option selected>Все</option>
+                                    <option>Иванов А.</option>
+                                    <option>Смирнов В.</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">ФИО клиента</label>
+                                <input type="text" class="form-control" placeholder="Введите ФИО">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Номер клиента</label>
+                                <input type="text" class="form-control" placeholder="Введите номер">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">PAN</label>
+                                <input type="text" class="form-control" placeholder="Введите PAN">
+                            </div>
+                        </div>
+                        
+                        <div class="row filter-row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Дата обработки от</label>
+                                <input type="date" class="form-control">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Дата обработки до</label>
+                                <input type="date" class="form-control">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Дата доставки от</label>
+                                <input type="date" class="form-control">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Дата доставки до</label>
+                                <input type="date" class="form-control">
+                            </div>
+                        </div>
+                        
+                        <div class="filter-actions">
+                            <button class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-times me-1"></i>Очистить
+                            </button>
+                            <button class="btn btn-primary">
+                                <i class="fas fa-filter me-1"></i>Применить фильтры
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Таблица заявок -->
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><input class="form-check-input" type="checkbox"></th>
+                                    <th>Номер</th>
+                                    <th>ID</th>
+                                    <th>Курьер</th>
+                                    <th>Дата регистрации</th>
+                                    <th>Клиент</th>
+                                    <th>Номер клиента</th>
+                                    <th>Статус</th>
+                                    <th>Филиал</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input class="form-check-input" type="checkbox"></td>
+                                    <td>#12345</td>
+                                    <td>ABS10001</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="courier-status online me-2"></span>
+                                            Иванов А.
+                                        </div>
+                                    </td>
+                                    <td>12.05.2023 14:30</td>
+                                    <td>Петров Иван Сергеевич</td>
+                                    <td>+7 (900) 123-45-67</td>
+                                    <td><span class="badge bg-warning status-badge">Ожидает доставки</span></td>
+                                    <td>Центральный</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Просмотр">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-success btn-action" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="Печать договора">
+                                                <i class="fas fa-print"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><input class="form-check-input" type="checkbox"></td>
+                                    <td>#12346</td>
+                                    <td>ABS10002</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="courier-status on-delivery me-2"></span>
+                                            Смирнов В.
+                                        </div>
+                                    </td>
+                                    <td>12.05.2023 15:45</td>
+                                    <td>Сидорова Мария Ивановна</td>
+                                    <td>+7 (900) 765-43-21</td>
+                                    <td><span class="badge bg-success status-badge">Доставлено</span></td>
+                                    <td>Северный</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Просмотр">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="Печать договора">
+                                                <i class="fas fa-print"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary btn-action" data-bs-toggle="tooltip" title="Скачать документы">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><input class="form-check-input" type="checkbox"></td>
+                                    <td>#12347</td>
+                                    <td>ABS10003</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="courier-status offline me-2"></span>
+                                            Не назначен
+                                        </div>
+                                    </td>
+                                    <td>13.05.2023 09:15</td>
+                                    <td>Кузнецов Олег Петрович</td>
+                                    <td>+7 (900) 555-44-33</td>
+                                    <td><span class="badge bg-info status-badge">Новая</span></td>
+                                    <td>Южный</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Просмотр">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-success btn-action" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning btn-action" data-bs-toggle="tooltip" title="Назначить курьера">
+                                                <i class="fas fa-user-plus"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div>Показано 3 из 127 заявок</div>
+                    <nav>
+                        <ul class="pagination mb-0">
+                            <li class="page-item disabled"><a class="page-link" href="#">Предыдущая</a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#">Следующая</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления заявки -->
+    <div class="modal fade" id="addRequestModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавление заявки на доставку карты</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ФИО клиента *</label>
+                            <input type="text" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Номер телефона клиента *</label>
+                            <input type="tel" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">PAN *</label>
+                            <input type="text" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Адрес доставки *</label>
+                            <input type="text" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Статус</label>
+                            <select class="form-select">
+                                <option selected>Новая</option>
+                                <option>Ожидает доставки</option>
+                                <option>Доставлено</option>
+                                <option>Отказано</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Курьер</label>
+                            <select class="form-select">
+                                <option selected>Не назначен</option>
+                                <option>Иванов А.</option>
+                                <option>Смирнов В.</option>
+                                <option>Петров С.</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Филиал</label>
+                            <select class="form-select">
+                                <option selected>Центральный</option>
+                                <option>Северный</option>
+                                <option>Южный</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Подразделение</label>
+                            <select class="form-select">
+                                <option selected>Подразделение 1</option>
+                                <option>Подразделение 2</option>
+                                <option>Подразделение 3</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary">Добавить заявку</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для изменения статуса -->
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Изменение статуса заявки #12345</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Текущий статус</label>
+                        <div class="fw-bold text-warning">Ожидает доставки</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Новый статус</label>
+                        <select class="form-select" id="statusSelect">
+                            <option selected>Выберите статус</option>
+                            <option value="delivered">Доставлено</option>
+                            <option value="rejected">Отказано</option>
+                        </select>
+                    </div>
+                    
+                    <div id="deliveredFields" class="d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Фотографии доставки (минимум 2)</label>
+                            <div class="d-flex gap-2 mb-2">
+                                <button class="btn btn-outline-primary">
+                                    <i class="fas fa-camera me-1"></i>Сделать фото
+                                </button>
+                                <button class="btn btn-outline-secondary">
+                                    <i class="fas fa-image me-1"></i>Из галереи
+                                </button>
+                            </div>
+                            <div class="form-text">Загрузите минимум 2 фотографии</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Телефон курьера</label>
+                            <input type="tel" class="form-control" placeholder="+7 (xxx) xxx-xx-xx">
+                        </div>
+                    </div>
+                    
+                    <div id="rejectedFields" class="d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Причина отказа</label>
+                            <textarea class="form-control" rows="3" placeholder="Подробно опишите причину отказа..." minlength="100"></textarea>
+                            <div class="form-text">Минимум 100 символов</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary">Сохранить изменения</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для подписи -->
+    <div class="modal fade" id="signatureModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Электронная подпись клиента</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Поставьте подпись в области ниже:</p>
+                    <div class="signature-pad">
+                        <div class="text-center">
+                            <i class="fas fa-signature fa-2x mb-2"></i>
+                            <p>Нажмите для начала подписи</p>
+                        </div>
+                    </div>
+                    <div class="form-text">Подпись будет добавлена в договор и сохранена в системе</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary">Очистить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary">Сохранить подпись</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Логика отображения дополнительных полей в модальном окне
+            const statusSelect = document.getElementById('statusSelect');
+            const deliveredFields = document.getElementById('deliveredFields');
+            const rejectedFields = document.getElementById('rejectedFields');
+            
+            if (statusSelect) {
+                statusSelect.addEventListener('change', function() {
+                    if (this.value === 'delivered') {
+                        deliveredFields.classList.remove('d-none');
+                        rejectedFields.classList.add('d-none');
+                    } else if (this.value === 'rejected') {
+                        deliveredFields.classList.add('d-none');
+                        rejectedFields.classList.remove('d-none');
+                    } else {
+                        deliveredFields.classList.add('d-none');
+                        rejectedFields.classList.add('d-none');
+                    }
+                });
+            }
+            
+            // Инициализация tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Отслеживание местоположения курьера (каждые 60 секунд)
+            if (navigator.geolocation) {
+                setInterval(() => {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const { latitude, longitude } = position.coords;
+                            // Здесь будет отправка координат на сервер
+                            console.log('Координаты курьера:', latitude, longitude);
+                        },
+                        (error) => {
+                            console.error('Ошибка получения геолокации:', error);
+                        },
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                    );
+                }, 60000);
+            }
+            
+            // Обработка применения фильтров
+            const applyFiltersBtn = document.querySelector('.filter-actions .btn-primary');
+            if (applyFiltersBtn) {
+                applyFiltersBtn.addEventListener('click', function() {
+                    // Показать уведомление
+                    showNotification('Фильтры применены успешно', 'success');
+                    
+                    // Здесь будет код применения фильтров и обновления таблицы
+                });
+            }
+            
+            // Обработка очистки фильтров
+            const clearFiltersBtn = document.querySelector('.filter-actions .btn-outline-secondary');
+            if (clearFiltersBtn) {
+                clearFiltersBtn.addEventListener('click', function() {
+                    const inputs = document.querySelectorAll('.filters-panel input');
+                    const selects = document.querySelectorAll('.filters-panel select');
+                    
+                    inputs.forEach(input => {
+                        if (input.type === 'text' || input.type === 'tel') {
+                            input.value = '';
+                        }
+                    });
+                    
+                    selects.forEach(select => {
+                        select.selectedIndex = 0;
+                    });
+                    
+                    // Показать уведомление
+                    showNotification('Фильтры очищены', 'success');
+                });
+            }
+            
+            // Функция показа уведомлений
+            function showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} me-2"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Удалить уведомление через 5 секунд
+                setTimeout(() => {
+                    notification.remove();
+                }, 5000);
+            }
+            
+            // Имитация загрузки данных
+            setTimeout(() => {
+                const preloader = document.querySelector('.preloader');
+                if (preloader) {
+                    preloader.style.display = 'none';
+                }
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
