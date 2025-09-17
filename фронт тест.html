@@ -666,7 +666,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="map-container">
+                    <div class="map-container" id="mapContainer">
                         <div class="text-center">
                             <i class="fas fa-map-marked-alt fa-3x mb-3"></i>
                             <p>Интеграция с Яндекс.Картами</p>
@@ -1159,9 +1159,50 @@
         </div>
     </div>
 
+    <!-- Подключение API сервисов -->
+    <script src="frontend/src/services/api.js"></script>
+    <script src="frontend/src/services/auth.js"></script>
+    <script src="frontend/src/services/location.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Глобальные переменные
+        let currentRequests = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentFilters = {};
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация приложения
+            initializeApp();
+            
+            // Инициализация обработчиков событий
+            initializeEventHandlers();
+            
+            // Загрузка данных
+            loadDashboardData();
+            loadRequests();
+        });
+
+        // Инициализация приложения
+        async function initializeApp() {
+            // Проверка аутентификации
+            if (!authService.isAuthenticated) {
+                authService.showLoginModal();
+                return;
+            }
+
+            // Инициализация карты
+            if (authService.hasAnyRole(['admin', 'senior_courier'])) {
+                locationService.initMap('mapContainer');
+            }
+
+            // Обновление UI
+            authService.updateUI();
+        }
+
+        // Инициализация обработчиков событий
+        function initializeEventHandlers() {
             // Логика отображения дополнительных полей в модальном окне
             const statusSelect = document.getElementById('statusSelect');
             const deliveredFields = document.getElementById('deliveredFields');
@@ -1188,83 +1229,378 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
             
-            // Отслеживание местоположения курьера (каждые 60 секунд)
-            if (navigator.geolocation) {
-                setInterval(() => {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const { latitude, longitude } = position.coords;
-                            // Здесь будет отправка координат на сервер
-                            console.log('Координаты курьера:', latitude, longitude);
-                        },
-                        (error) => {
-                            console.error('Ошибка получения геолокации:', error);
-                        },
-                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-                    );
-                }, 60000);
-            }
-            
             // Обработка применения фильтров
             const applyFiltersBtn = document.querySelector('.filter-actions .btn-primary');
             if (applyFiltersBtn) {
-                applyFiltersBtn.addEventListener('click', function() {
-                    // Показать уведомление
-                    showNotification('Фильтры применены успешно', 'success');
-                    
-                    // Здесь будет код применения фильтров и обновления таблицы
-                });
+                applyFiltersBtn.addEventListener('click', applyFilters);
             }
             
             // Обработка очистки фильтров
             const clearFiltersBtn = document.querySelector('.filter-actions .btn-outline-secondary');
             if (clearFiltersBtn) {
-                clearFiltersBtn.addEventListener('click', function() {
-                    const inputs = document.querySelectorAll('.filters-panel input');
-                    const selects = document.querySelectorAll('.filters-panel select');
-                    
-                    inputs.forEach(input => {
-                        if (input.type === 'text' || input.type === 'tel') {
-                            input.value = '';
-                        }
-                    });
-                    
-                    selects.forEach(select => {
-                        select.selectedIndex = 0;
-                    });
-                    
-                    // Показать уведомление
-                    showNotification('Фильтры очищены', 'success');
+                clearFiltersBtn.addEventListener('click', clearFilters);
+            }
+
+            // Обработка добавления заявки
+            const addRequestBtn = document.querySelector('[data-bs-target="#addRequestModal"]');
+            if (addRequestBtn) {
+                addRequestBtn.addEventListener('click', () => {
+                    loadFormData();
                 });
             }
-            
-            // Функция показа уведомлений
-            function showNotification(message, type) {
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} me-2"></i>
-                        <span>${message}</span>
-                    </div>
-                `;
-                
-                document.body.appendChild(notification);
-                
-                // Удалить уведомление через 5 секунд
-                setTimeout(() => {
-                    notification.remove();
-                }, 5000);
+
+            // Обработка сохранения заявки
+            const saveRequestBtn = document.querySelector('#addRequestModal .btn-primary');
+            if (saveRequestBtn) {
+                saveRequestBtn.addEventListener('click', saveRequest);
             }
+
+            // Обработка выгрузки данных
+            const exportBtn = document.querySelector('.btn-success');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportData);
+            }
+
+            // Обработка выхода из системы
+            const logoutBtn = document.querySelector('a[href="#logout"]');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    authService.logout();
+                });
+            }
+        }
+
+        // Загрузка данных дашборда
+        async function loadDashboardData() {
+            try {
+                const [statsResponse, activityResponse] = await Promise.all([
+                    apiService.getDashboardStats(),
+                    apiService.getRecentActivity(10)
+                ]);
+
+                updateDashboardStats(statsResponse.stats);
+                updateRecentActivity(activityResponse.activities);
+            } catch (error) {
+                console.error('Ошибка загрузки данных дашборда:', error);
+                authService.showNotification('Ошибка загрузки данных дашборда', 'error');
+            }
+        }
+
+        // Обновление статистики дашборда
+        function updateDashboardStats(stats) {
+            const statCards = document.querySelectorAll('.stat-card');
+            if (statCards.length >= 4) {
+                statCards[0].querySelector('h3').textContent = stats.total;
+                statCards[1].querySelector('h3').textContent = stats.delivered;
+                statCards[2].querySelector('h3').textContent = stats.inProgress;
+                statCards[3].querySelector('h3').textContent = stats.rejected;
+            }
+        }
+
+        // Обновление последней активности
+        function updateRecentActivity(activities) {
+            // Здесь можно добавить отображение последней активности
+            console.log('Последняя активность:', activities);
+        }
+
+        // Загрузка заявок
+        async function loadRequests(page = 1) {
+            try {
+                const params = {
+                    page,
+                    limit: 20,
+                    ...currentFilters
+                };
+
+                const response = await apiService.getRequests(params);
+                currentRequests = response.requests;
+                currentPage = response.pagination.page;
+                totalPages = response.pagination.pages;
+
+                updateRequestsTable();
+                updatePagination();
+            } catch (error) {
+                console.error('Ошибка загрузки заявок:', error);
+                authService.showNotification('Ошибка загрузки заявок', 'error');
+            }
+        }
+
+        // Обновление таблицы заявок
+        function updateRequestsTable() {
+            const tbody = document.querySelector('.table tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            currentRequests.forEach(request => {
+                const row = createRequestRow(request);
+                tbody.appendChild(row);
+            });
+        }
+
+        // Создание строки заявки
+        function createRequestRow(request) {
+            const row = document.createElement('tr');
             
-            // Имитация загрузки данных
-            setTimeout(() => {
-                const preloader = document.querySelector('.preloader');
-                if (preloader) {
-                    preloader.style.display = 'none';
+            const statusBadge = getStatusBadge(request.status);
+            const courierStatus = getCourierStatus(request.courier);
+            const actionButtons = getActionButtons(request);
+
+            row.innerHTML = `
+                <td><input class="form-check-input" type="checkbox"></td>
+                <td>${request.requestNumber}</td>
+                <td>${request.absId || '-'}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        ${courierStatus}
+                        ${request.courier ? request.courier.name : 'Не назначен'}
+                    </div>
+                </td>
+                <td>${formatDateTime(request.dates.registration)}</td>
+                <td>${request.client.name}</td>
+                <td>${request.client.phone}</td>
+                <td>${statusBadge}</td>
+                <td>${request.branch || '-'}</td>
+                <td>${actionButtons}</td>
+            `;
+
+            return row;
+        }
+
+        // Получение бейджа статуса
+        function getStatusBadge(status) {
+            const statusConfig = {
+                'new': { class: 'bg-info', text: 'Новая' },
+                'waiting_delivery': { class: 'bg-warning', text: 'Ожидает доставки' },
+                'delivered': { class: 'bg-success', text: 'Доставлено' },
+                'rejected': { class: 'bg-danger', text: 'Отказано' },
+                'cancelled': { class: 'bg-secondary', text: 'Отменена' }
+            };
+
+            const config = statusConfig[status] || { class: 'bg-secondary', text: status };
+            return `<span class="badge ${config.class} status-badge">${config.text}</span>`;
+        }
+
+        // Получение статуса курьера
+        function getCourierStatus(courier) {
+            if (!courier) {
+                return '<span class="courier-status offline me-2"></span>';
+            }
+
+            // Здесь можно добавить логику определения статуса курьера
+            return '<span class="courier-status online me-2"></span>';
+        }
+
+        // Получение кнопок действий
+        function getActionButtons(request) {
+            let buttons = '';
+
+            // Кнопка просмотра
+            buttons += `<button class="btn btn-sm btn-outline-primary btn-action" onclick="viewRequest(${request.id})" data-bs-toggle="tooltip" title="Просмотр">
+                <i class="fas fa-eye"></i>
+            </button>`;
+
+            // Кнопка редактирования (только для операторов и администраторов)
+            if (authService.hasPermission('edit_requests')) {
+                buttons += `<button class="btn btn-sm btn-outline-success btn-action" onclick="editRequest(${request.id})" data-bs-toggle="tooltip" title="Редактировать">
+                    <i class="fas fa-edit"></i>
+                </button>`;
+            }
+
+            // Кнопка печати договора (только для старших курьеров и администраторов)
+            if (authService.hasAnyRole(['admin', 'senior_courier'])) {
+                buttons += `<button class="btn btn-sm btn-outline-info btn-action" onclick="printContract(${request.id})" data-bs-toggle="tooltip" title="Печать договора">
+                    <i class="fas fa-print"></i>
+                </button>`;
+            }
+
+            // Кнопка назначения курьера (только для старших курьеров и администраторов)
+            if (authService.hasPermission('assign_couriers') && !request.courier) {
+                buttons += `<button class="btn btn-sm btn-outline-warning btn-action" onclick="assignCourier(${request.id})" data-bs-toggle="tooltip" title="Назначить курьера">
+                    <i class="fas fa-user-plus"></i>
+                </button>`;
+            }
+
+            return `<div class="btn-group">${buttons}</div>`;
+        }
+
+        // Форматирование даты и времени
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('ru-RU');
+        }
+
+        // Обновление пагинации
+        function updatePagination() {
+            const pagination = document.querySelector('.pagination');
+            if (!pagination) return;
+
+            let paginationHTML = '';
+
+            // Кнопка "Предыдущая"
+            paginationHTML += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadRequests(${currentPage - 1})">Предыдущая</a>
+            </li>`;
+
+            // Номера страниц
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    paginationHTML += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadRequests(${i})">${i}</a>
+                    </li>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
                 }
-            }, 1500);
-        });
+            }
+
+            // Кнопка "Следующая"
+            paginationHTML += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadRequests(${currentPage + 1})">Следующая</a>
+            </li>`;
+
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // Применение фильтров
+        async function applyFilters() {
+            const filters = {};
+            
+            // Сбор данных из формы фильтров
+            const filterInputs = document.querySelectorAll('.filters-panel input, .filters-panel select');
+            filterInputs.forEach(input => {
+                if (input.value && input.value !== 'Все') {
+                    filters[input.name || input.id] = input.value;
+                }
+            });
+
+            currentFilters = filters;
+            currentPage = 1;
+            
+            await loadRequests(1);
+            authService.showNotification('Фильтры применены', 'success');
+        }
+
+        // Очистка фильтров
+        function clearFilters() {
+            const inputs = document.querySelectorAll('.filters-panel input');
+            const selects = document.querySelectorAll('.filters-panel select');
+            
+            inputs.forEach(input => {
+                if (input.type === 'text' || input.type === 'tel') {
+                    input.value = '';
+                }
+            });
+            
+            selects.forEach(select => {
+                select.selectedIndex = 0;
+            });
+
+            currentFilters = {};
+            currentPage = 1;
+            loadRequests(1);
+            authService.showNotification('Фильтры очищены', 'success');
+        }
+
+        // Загрузка данных для форм
+        async function loadFormData() {
+            try {
+                const [branches, departments, couriers, cardTypes] = await Promise.all([
+                    apiService.getBranches(),
+                    apiService.getDepartments(),
+                    apiService.getCouriers(),
+                    apiService.getCardTypes()
+                ]);
+
+                populateSelect('#addRequestModal select[name="branch_id"]', branches.branches);
+                populateSelect('#addRequestModal select[name="department_id"]', departments.departments);
+                populateSelect('#addRequestModal select[name="courier_id"]', couriers.couriers);
+                populateSelect('#addRequestModal select[name="card_type_id"]', cardTypes.cardTypes);
+            } catch (error) {
+                console.error('Ошибка загрузки данных форм:', error);
+            }
+        }
+
+        // Заполнение select элементов
+        function populateSelect(selector, data) {
+            const select = document.querySelector(selector);
+            if (!select) return;
+
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Выберите...</option>';
+            
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name;
+                select.appendChild(option);
+            });
+
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
+
+        // Сохранение заявки
+        async function saveRequest() {
+            const form = document.querySelector('#addRequestModal form');
+            if (!form) return;
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                await apiService.createRequest(data);
+                authService.showNotification('Заявка успешно создана', 'success');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addRequestModal'));
+                modal.hide();
+                
+                form.reset();
+                loadRequests(currentPage);
+            } catch (error) {
+                authService.showNotification(error.message || 'Ошибка создания заявки', 'error');
+            }
+        }
+
+        // Просмотр заявки
+        async function viewRequest(id) {
+            try {
+                const response = await apiService.getRequest(id);
+                // Здесь можно открыть модальное окно с деталями заявки
+                console.log('Детали заявки:', response.request);
+                authService.showNotification('Заявка загружена', 'success');
+            } catch (error) {
+                authService.showNotification('Ошибка загрузки заявки', 'error');
+            }
+        }
+
+        // Редактирование заявки
+        function editRequest(id) {
+            // Здесь можно открыть модальное окно редактирования
+            console.log('Редактирование заявки:', id);
+        }
+
+        // Печать договора
+        function printContract(id) {
+            // Здесь можно добавить логику печати договора
+            console.log('Печать договора для заявки:', id);
+            authService.showNotification('Функция печати договора в разработке', 'info');
+        }
+
+        // Назначение курьера
+        function assignCourier(id) {
+            // Здесь можно открыть модальное окно назначения курьера
+            console.log('Назначение курьера для заявки:', id);
+        }
+
+        // Выгрузка данных
+        function exportData() {
+            // Здесь можно добавить логику выгрузки данных в Excel
+            console.log('Выгрузка данных');
+            authService.showNotification('Функция выгрузки данных в разработке', 'info');
+        }
     </script>
 </body>
 </html>
