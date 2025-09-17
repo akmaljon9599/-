@@ -1,0 +1,30 @@
+{
+    "name": "courier-service/bitrix24-module",
+    "description": "Модуль курьерской службы для Bitrix24",
+    "type": "bitrix-d7-module",
+    "version": "1.0.0",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Courier Service Team",
+            "email": "dev@courier-service.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "ext-json": "*",
+        "ext-curl": "*",
+        "ext-gd": "*",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "CourierService\\": "lib/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
