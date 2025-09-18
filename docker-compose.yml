@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # База данных MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: courier_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-courier_system}
+      MYSQL_USER: ${DB_USER:-courier_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-courier_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    networks:
+      - courier_network
+
+  # Redis для кэширования и сессий
+  redis:
+    image: redis:7-alpine
+    container_name: courier_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - courier_network
+
+  # Backend приложение
+  backend:
+    build: .
+    container_name: courier_backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-courier_system}
+      - DB_USER=${DB_USER:-courier_user}
+      - DB_PASSWORD=${DB_PASSWORD:-courier_password}
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-here}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/logs:/app/backend/logs
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - courier_network
+
+  # Nginx для статических файлов и прокси
+  nginx:
+    image: nginx:alpine
+    container_name: courier_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./frontend:/usr/share/nginx/html
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+    networks:
+      - courier_network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  courier_network:
+    driver: bridge
